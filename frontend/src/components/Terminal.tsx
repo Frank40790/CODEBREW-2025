@@ -65,13 +65,38 @@ const CRTTerminal: React.FC = () => {
                 if (done) break;
 
                 buffer += decoder.decode(value, { stream: true });
-                const parts = buffer.split(/\r?\n/);
-                buffer = parts.pop()!;
-                parts.forEach(line =>
-                    setLines(prev => [...prev, { type: "output", text: line }])
-                );
+
+                const linesArr = buffer.split('\n');
+                buffer = linesArr.pop()!;
+
+                linesArr.forEach(chunk => handleChunk(chunk));
             }
-            if (buffer) setLines(prev => [...prev, { type: "output", text: buffer }]);
+
+            if (buffer) handleChunk(buffer);
+
+            function handleChunk(chunk: string) {
+                const crPos = chunk.lastIndexOf('\r');
+
+                if (crPos === -1) {
+                    setLines(prev => [...prev, { type: "output", text: chunk }]);
+                } else {
+                    const clean = chunk.slice(crPos + 1);
+
+                    setLines(prev => {
+                        const updated = [...prev];
+                        let i = updated.length - 1;
+                        while (i >= 0 && updated[i].type !== "output") i--;
+
+                        if (i >= 0) {
+                            updated[i] = { ...updated[i], text: clean };
+                        } else {
+                            updated.push({ type: "output", text: clean });
+                        }
+                        return updated;
+                    });
+                }
+            }
+
         } catch (err: any) {
             if (err.name === "AbortError") {
                 setLines(prev => [...prev, { type: "output", text: "^C" }]);
@@ -119,18 +144,18 @@ const CRTTerminal: React.FC = () => {
                 style={{
                     opacity: 0.75,
                     background:
-                    "repeating-linear-gradient(180deg, rgba(14, 32, 12, 0.79) 1px, transparent 4px)",
+                        "repeating-linear-gradient(180deg, rgba(14, 32, 12, 0.79) 1px, transparent 4px)",
                 }}
-                />
-    
+            />
+
             {/* Terminal Content */}
             <div
                 ref={containerRef}
                 className="overflow-y-auto font-mono text-lg px-2 py-2 text-left relative z-0"
                 style={{
                     fontSize: "20px", // 👈 Add this
-                    ... textGlow
-                  }}
+                    ...textGlow
+                }}
             >
                 {lines.map((line, idx) => (
                     <div key={idx} className="whitespace-pre-wrap">
@@ -166,7 +191,7 @@ const CRTTerminal: React.FC = () => {
             </div>
         </div>
     );
-    
+
 };
 
 export default CRTTerminal;
