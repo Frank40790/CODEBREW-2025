@@ -31,23 +31,44 @@ const CRTTerminal: React.FC = () => {
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         if (!input.trim()) return;
+
         const command = input;
-        setLines((prev) => [...prev, { type: "input", text: command }]);
+        setLines(prev => [...prev, { type: "input", text: command }]);
         setInput("");
         setLoading(true);
+
         try {
             const res = await fetch(`${apiBase}/api/terminal`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ command }),
             });
-            const data = await res.json();
-            setLines((prev) => [
-                ...prev,
-                { type: "output", text: data.output || "(no output)" },
-            ]);
+
+            if (!res.body) throw new Error("No response body");
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+
+                const parts = buffer.split(/\r?\n/);
+                buffer = parts.pop()!;
+
+                parts.forEach(line =>
+                    setLines(prev => [...prev, { type: "output", text: line }])
+                );
+            }
+
+            if (buffer.length) {
+                setLines(prev => [...prev, { type: "output", text: buffer }]);
+            }
         } catch (err) {
-            setLines((prev) => [
+            setLines(prev => [
                 ...prev,
                 { type: "output", text: "Error: Could not reach backend." },
             ]);
