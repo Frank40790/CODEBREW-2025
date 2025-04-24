@@ -67,6 +67,8 @@ const CRTTerminal: React.FC = () => {
                 buffer += decoder.decode(value, { stream: true });
                 const parts = buffer.split(/\r?\n/);
                 buffer = parts.pop()!;
+                
+                // console.log(parts);
                 parts.forEach(line =>
                     setLines(prev => [...prev, { type: "output", text: line }])
                 );

@@ -6,7 +6,8 @@ import asyncio
 import sys
 
 COMMAND_TRANSLATION = {
-    "ping": "ping -c 30 8.8.8.8",
+    "ping": "ping -c 5 8.8.8.8",
+    "visualise": "python3 visualiser.py"
 }
 
 app = FastAPI(
@@ -29,7 +30,7 @@ async def stream_command_output(command_to_run: str, request: Request):
     process = await asyncio.create_subprocess_shell(
         command_to_run,
         stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.STDOUT,
+        stderr=asyncio.subprocess.PIPE,
     )
 
     try:
