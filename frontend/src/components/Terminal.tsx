@@ -28,6 +28,8 @@ const CRTTerminal: React.FC = () => {
         containerRef.current?.scrollTo(0, containerRef.current.scrollHeight);
     }, [lines]);
 
+    const abortCtlRef = useRef<AbortController | null>(null);
+
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         if (!input.trim()) return;
@@ -37,14 +39,18 @@ const CRTTerminal: React.FC = () => {
         setInput("");
         setLoading(true);
 
+        const abortCtl = new AbortController();
+        abortCtlRef.current = abortCtl;
+
         try {
             const res = await fetch(`${apiBase}/api/terminal`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ command }),
+                signal: abortCtl.signal,
             });
 
-            if (!res.body) throw new Error("No response body");
+            if (!res.body) throw new Error("No body");
 
             const reader = res.body.getReader();
             const decoder = new TextDecoder();
@@ -55,27 +61,43 @@ const CRTTerminal: React.FC = () => {
                 if (done) break;
 
                 buffer += decoder.decode(value, { stream: true });
-
                 const parts = buffer.split(/\r?\n/);
                 buffer = parts.pop()!;
-
                 parts.forEach(line =>
                     setLines(prev => [...prev, { type: "output", text: line }])
                 );
             }
-
-            if (buffer.length) {
-                setLines(prev => [...prev, { type: "output", text: buffer }]);
+            if (buffer) setLines(prev => [...prev, { type: "output", text: buffer }]);
+        } catch (err: any) {
+            if (err.name === "AbortError") {
+                setLines(prev => [...prev, { type: "output", text: "(cancelled)" }]);
+            } else {
+                setLines(prev => [...prev,
+                { type: "output", text: "Error: Could not reach backend." }
+                ]);
             }
-        } catch (err) {
-            setLines(prev => [
-                ...prev,
-                { type: "output", text: "Error: Could not reach backend." },
-            ]);
         } finally {
             setLoading(false);
+            abortCtlRef.current = null;
         }
     };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.ctrlKey && e.key === "c") {
+            if (loading) {
+                abortCtlRef.current?.abort();
+                e.preventDefault();
+            }
+            return;
+        }
+
+        if (e.key === "ArrowUp" && lastCommand) {
+            setInput(lastCommand);
+            setTimeout(() =>
+                inputRef.current?.setSelectionRange(lastCommand.length, lastCommand.length), 0);
+        }
+    };
+
 
     const [lastCommand, setLastCommand] = useState<string | null>(null);
     useEffect(() => {
@@ -84,13 +106,6 @@ const CRTTerminal: React.FC = () => {
             if (lastInput) setLastCommand(lastInput.text);
         }
     }, [lines]);
-
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "ArrowUp" && lastCommand) {
-            setInput(lastCommand);
-            setTimeout(() => inputRef.current?.setSelectionRange(lastCommand.length, lastCommand.length), 0);
-        }
-    };
 
     return (
         <div className="min-h-screen min-w-screen flex items-center justify-center" style={crtBg}>
@@ -124,7 +139,7 @@ const CRTTerminal: React.FC = () => {
                         }}
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        disabled={loading}
+                        readOnly={loading}
                         autoComplete="off"
                         spellCheck={false}
                         onKeyDown={handleKeyDown}

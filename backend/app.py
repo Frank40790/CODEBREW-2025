@@ -6,8 +6,7 @@ import asyncio
 import sys
 
 COMMAND_TRANSLATION = {
-    "test": "python test.py",
-    "ping": "ping -c 3 8.8.8.8",
+    "ping": "ping -c 30 8.8.8.8",
 }
 
 app = FastAPI(
@@ -26,48 +25,47 @@ app.add_middleware(
 class CommandRequest(BaseModel):
     command: str
 
-class CommandResponse(BaseModel):
-    output: str
-
-async def stream_command_output(command_to_run: str):
+async def stream_command_output(command_to_run: str, request: Request):
     process = await asyncio.create_subprocess_shell(
         command_to_run,
         stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.STDOUT
+        stderr=asyncio.subprocess.STDOUT,
     )
-
-    if process.stdout is None:
-        yield "Error: Could not capture subprocess output.\n"
-        return
 
     try:
         while True:
+            if process.stdout is None:
+                break
+
             line = await process.stdout.readline()
             if not line:
                 break
-            yield line.decode(errors='replace')
-    except Exception as e:
-        yield f"Error during command execution: {e}\n"
+
+            yield line.decode(errors="replace")
+    except asyncio.CancelledError:
+        process.terminate()
     finally:
         try:
-            await process.wait()
-        except Exception:
-            pass
+            await asyncio.wait_for(process.wait(), timeout=2)
+        except asyncio.TimeoutError:
+            process.kill()
+
+async def empty_stream():
+    pass
 
 @app.post("/api/terminal")
 async def terminal(cmd: CommandRequest, request: Request):
     text = cmd.command.strip()
 
-    async def empty_stream(msg: str):
-        yield msg + "\n"
-
     if not text:
-        return StreamingResponse(empty_stream(""), media_type="text/plain")
+        
+        return StreamingResponse(empty_stream(), media_type="text/plain")
 
     if text in COMMAND_TRANSLATION:
         actual_command = COMMAND_TRANSLATION[text]
-        return StreamingResponse(stream_command_output(actual_command),
-                                 media_type="text/plain")
-
-    return StreamingResponse(empty_stream("Method not allowed"),
-                             media_type="text/plain")
+        return StreamingResponse(
+            stream_command_output(actual_command, request),
+            media_type="text/plain",
+        )
+    else:
+        return StreamingResponse("Method not allowed")
