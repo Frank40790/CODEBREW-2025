@@ -70,7 +70,7 @@ const CRTTerminal: React.FC = () => {
             if (buffer) setLines(prev => [...prev, { type: "output", text: buffer }]);
         } catch (err: any) {
             if (err.name === "AbortError") {
-                setLines(prev => [...prev, { type: "output", text: "(cancelled)" }]);
+                setLines(prev => [...prev, { type: "output", text: "^C" }]);
             } else {
                 setLines(prev => [...prev,
                 { type: "output", text: "Error: Could not reach backend." }

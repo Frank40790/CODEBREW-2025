@@ -40,26 +40,21 @@ async def stream_command_output(command_to_run: str, request: Request):
             line = await process.stdout.readline()
             if not line:
                 break
-
-            yield line.decode(errors="replace")
-    except asyncio.CancelledError:
-        process.terminate()
+            yield line.decode(errors='replace')
+    except Exception as e:
+        yield f"Error during command execution: {e}\n"
     finally:
         try:
-            await asyncio.wait_for(process.wait(), timeout=2)
-        except asyncio.TimeoutError:
-            process.kill()
-
-async def empty_stream():
-    pass
+            await process.wait()
+        except Exception:
+            pass
 
 @app.post("/api/terminal")
 async def terminal(cmd: CommandRequest, request: Request):
     text = cmd.command.strip()
 
     if not text:
-        
-        return StreamingResponse(empty_stream(), media_type="text/plain")
+        return StreamingResponse(empty_stream(""), media_type="text/plain")
 
     if text in COMMAND_TRANSLATION:
         actual_command = COMMAND_TRANSLATION[text]
