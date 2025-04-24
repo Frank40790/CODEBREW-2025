@@ -4,16 +4,20 @@ const crtBg = {
     background: "repeating-linear-gradient(180deg, #222 0px, #222 2px, #232323 4px, #222 6px)",
 };
 
+const textGlow = {
+    textShadow: "0 0 2px #0f0, 0 0 8px #0f0",
+};
+
 interface TerminalLine {
     type: "input" | "output";
     text: string;
 }
 
-const apiBase = "http://localhost:8000"
+const apiBase = "http://localhost:8000";
 
 const CRTTerminal: React.FC = () => {
     const [lines, setLines] = useState<TerminalLine[]>([
-        { type: "output", text: "Welcome to CRT Terminal! Type a command." },
+        { type: "output", text: "welcome to student.tty" },
     ]);
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
@@ -108,15 +112,25 @@ const CRTTerminal: React.FC = () => {
     }, [lines]);
 
     return (
-        <div className="min-h-screen min-w-screen flex items-center justify-center" style={crtBg}>
-
+        <div className="min-h-screen min-w-screen flex items-center justify-center relative" style={crtBg}>
+            {/* Scanner Overlay */}
+            <div
+                className="absolute inset-0 z-50 pointer-events-none"
+                style={{
+                    opacity: 0.75,
+                    background:
+                    "repeating-linear-gradient(180deg, rgba(14, 32, 12, 0.79) 1px, transparent 4px)",
+                }}
+                />
+    
+            {/* Terminal Content */}
             <div
                 ref={containerRef}
-                className="overflow-y-auto font-mono text-green-400 text-lg px-2 py-2 text-left"
+                className="overflow-y-auto font-mono text-lg px-2 py-2 text-left relative z-0"
                 style={{
-                    textShadow: "0 0 2px #0f0, 0 0 8px #0f0",
-                    ...crtBg,
-                }}
+                    fontSize: "20px", // 👈 Add this
+                    ... textGlow
+                  }}
             >
                 {lines.map((line, idx) => (
                     <div key={idx} className="whitespace-pre-wrap">
@@ -132,9 +146,9 @@ const CRTTerminal: React.FC = () => {
                     <input
                         ref={inputRef}
                         type="text"
-                        className="bg-transparent border-none outline-none text-green-200 ml-2 flex-1 placeholder-green-700"
+                        className="bg-transparent border-none outline-none ml-2 flex-1 placeholder-green-400 text-green-200"
                         style={{
-                            textShadow: "0 0 2px #0f0, 0 0 8px #0f0",
+                            ...textGlow,
                             caretColor: "#00FF00",
                         }}
                         value={input}
@@ -149,16 +163,10 @@ const CRTTerminal: React.FC = () => {
                         <span className="ml-2 animate-pulse text-green-500">▌</span>
                     )}
                 </form>
-                <div
-                    className="pointer-events-none absolute inset-0 opacity-20"
-                    style={{
-                        background:
-                            "repeating-linear-gradient(180deg, rgba(0,255,0,0.05) 0px, rgba(0,255,0,0.05) 2px, transparent 4px, transparent 6px)",
-                    }}
-                />
             </div>
         </div>
     );
+    
 };
 
 export default CRTTerminal;
