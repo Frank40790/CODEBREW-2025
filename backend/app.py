@@ -9,6 +9,7 @@ import sys
 
 COMMAND_TRANSLATION = {
     "ping": "ping -c 30 8.8.8.8",
+    "test": "python test.py"
 }
 
 BLACKLIST_COMMANDS = ["rm"]
