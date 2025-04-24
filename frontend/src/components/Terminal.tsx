@@ -17,7 +17,7 @@ const apiBase = "http://localhost:8000";
 
 const CRTTerminal: React.FC = () => {
     const [lines, setLines] = useState<TerminalLine[]>([
-        { type: "output", text: "Last login: Thu Apr 24 14:38:40 on ttys003" },
+        { type: "output", text: "welcome to student.tty" },
     ]);
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
