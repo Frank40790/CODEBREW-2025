@@ -17,7 +17,7 @@ const apiBase = "http://localhost:8000";
 
 const CRTTerminal: React.FC = () => {
     const [lines, setLines] = useState<TerminalLine[]>([
-        { type: "output", text: "welcome to student.tty" },
+        { type: "output", text: "Welcome to student.tty" },
     ]);
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
@@ -99,7 +99,7 @@ const CRTTerminal: React.FC = () => {
 
         } catch (err: any) {
             if (err.name === "AbortError") {
-                setLines(prev => [...prev, { type: "output", text: "^C" }]);
+                setLines(prev => [...prev, { type: "output", text: "(cancelled)" }]);
             } else {
                 setLines(prev => [...prev,
                 { type: "output", text: "Error: Could not reach backend." }

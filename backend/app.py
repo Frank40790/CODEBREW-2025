@@ -1,3 +1,5 @@
+import re
+import shlex
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,6 +10,8 @@ import sys
 COMMAND_TRANSLATION = {
     "ping": "ping -c 30 8.8.8.8",
 }
+
+BLACKLIST_COMMANDS = ["rm"]
 
 app = FastAPI(
     title="Terminal API",
@@ -24,6 +28,22 @@ app.add_middleware(
 
 class CommandRequest(BaseModel):
     command: str
+
+
+
+def is_blacklisted(cmd: str) -> bool:
+    blacklist_regex = re.compile(r"\b(?:%s)\b" % "|".join(map(re.escape, BLACKLIST_COMMANDS)))
+    return bool(blacklist_regex.search(cmd)) or is_blacklisted_shlex(cmd, BLACKLIST_COMMANDS)
+
+def is_blacklisted_shlex(cmd: str, blacklist) -> bool:
+    try:
+        lexer = shlex.shlex(cmd, posix=True)
+        lexer.whitespace_split = True
+        lexer.commenters = ""
+        tokens = list(lexer)
+    except ValueError:
+        return True
+    return any(tok in blacklist for tok in tokens)
 
 async def stream_command_output(command_to_run: str, request: Request):
     process = await asyncio.create_subprocess_shell(
@@ -58,10 +78,9 @@ async def terminal(cmd: CommandRequest, request: Request):
     text = cmd.command.strip()
 
     if not text:
-        
         return StreamingResponse(empty_stream(), media_type="text/plain")
 
-    if text in COMMAND_TRANSLATION:
+    if (text in COMMAND_TRANSLATION) and not is_blacklisted(text):
         actual_command = COMMAND_TRANSLATION[text]
         return StreamingResponse(
             stream_command_output(actual_command, request),
