@@ -9,6 +9,8 @@ interface TerminalLine {
     text: string;
 }
 
+const apiBase = "http://localhost:8000"
+
 const CRTTerminal: React.FC = () => {
     const [lines, setLines] = useState<TerminalLine[]>([
         { type: "output", text: "Welcome to CRT Terminal! Type a command." },
@@ -34,7 +36,7 @@ const CRTTerminal: React.FC = () => {
         setInput("");
         setLoading(true);
         try {
-            const res = await fetch("/api/terminal", {
+            const res = await fetch(`${apiBase}/api/terminal`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ command }),
