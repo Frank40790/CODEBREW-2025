@@ -9,7 +9,10 @@ import sys
 
 COMMAND_TRANSLATION = {
     "ping": "ping -c 5 8.8.8.8",
-    "visualise": "python3 visualiser.py"
+    "bubble_sort": "/usr/bin/python3 visualiser.py 1",
+    "quicksort": "/usr/bin/python3 visualiser.py 2",
+    "counting_sort": "/usr/bin/python3 visualiser.py 3",
+    "radix_sort": "/usr/bin/python3 visualiser.py 4",
 }
 
 BLACKLIST_COMMANDS = ["rm"]

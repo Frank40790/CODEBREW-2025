@@ -39,6 +39,14 @@ const CRTTerminal: React.FC = () => {
         if (!input.trim()) return;
 
         const command = input;
+
+        if (command === "clear")
+        {
+            setLines([]);
+            setInput("");
+            return;
+        }
+
         setLines(prev => [...prev, { type: "input", text: command }]);
         setInput("");
         setLoading(true);

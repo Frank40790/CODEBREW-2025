@@ -4,42 +4,45 @@ import os
 import sys
 
 WIDTH = 70
-HEIGHT = 30
+HEIGHT = 20
 
 def main():
     # Test each sorting algorithm
-    test_sorting_algorithm("Bubble Sort", bubble_sort)
-    time.sleep(1)
+
+    if len(sys.argv) < 2:
+        return
+    
+    sorting_funcs = {1: bubble_sort, 2: quick_sort, 3: counting_sort, 4: radix_sort}
+    test_sorting_algorithm("", sorting_funcs[int(sys.argv[1])])
     # test_sorting_algorithm("Quick Sort", quick_sort)
     # time.sleep(1)
     # test_sorting_algorithm("Counting Sort", counting_sort)
     # time.sleep(1)
     # test_sorting_algorithm("Radix Sort", radix_sort)
 
+def terminal_print(str):
+    print(str, flush=True)
+
 def test_sorting_algorithm(name, sort_function):
     # Clear the screen
     # lear_screen()
-    sys.stdout.write('\r')
+    # sys.stdout.write('\r')
     
     # Create random array
     bar_heights = [random.randint(1, 20) for _ in range(10)]
     
     # Display initial state
-    print(f"\n{name} - Initial State:")
-    grid = create_grid()  
-    draw_bars(grid, bar_heights)
-    print_grid(grid)
-    time.sleep(1)
+    # print(f"\n{name} - Initial State:")
     
     # Run the sorting algorithm with visualization
     sort_function(bar_heights)
     
     # Display final state
-    print(f"\n{name} - Sorted:")
-    grid = create_grid()
-    draw_bars(grid, bar_heights)
-    print_grid(grid)
-    print(f"\nFinal array: {bar_heights}")
+    # print(f"\n{name} - Sorted:")
+    # grid = create_grid()
+    # draw_bars(grid, bar_heights)
+    # print_grid(grid)
+    # print(f"\nFinal array: {bar_heights}")
 
 def create_grid():
     return [[' ' for _ in range(WIDTH)] for _ in range(HEIGHT)]
@@ -72,9 +75,7 @@ def visualize_state(bar_heights, highlighted_indices=None):
         draw_bar(grid, start, height, char)
         start += 6
     
-    # Print
-    # clear_screen()
-    sys.stdout.write('\r')
+    terminal_print('\r')
     print_grid(grid)
     time.sleep(0.1)  # Slow down visualization
 
@@ -88,10 +89,7 @@ def draw_bar(grid, start, height, char='#'):
 
 def print_grid(grid):
     for i in range(HEIGHT):
-        print("".join(grid[i]))
-
-def clear_screen():
-    os.system('cls' if sys.platform == 'nt' else 'clear')
+        terminal_print("".join(grid[i]))
 
 # Sorting Algorithms
 
