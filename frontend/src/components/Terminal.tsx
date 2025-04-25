@@ -17,7 +17,7 @@ const apiBase = "http://localhost:8000";
 
 const CRTTerminal: React.FC = () => {
     const [lines, setLines] = useState<TerminalLine[]>([
-        { type: "output", text: "welcome to student.tty" },
+        { type: "output", text: "Welcome to student.tty" },
     ]);
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
@@ -45,6 +45,7 @@ const CRTTerminal: React.FC = () => {
 
         const abortCtl = new AbortController();
         abortCtlRef.current = abortCtl;
+        let currentOutputIndex = -1;
 
         try {
             const res = await fetch(`${apiBase}/api/terminal`, {
@@ -54,52 +55,82 @@ const CRTTerminal: React.FC = () => {
                 signal: abortCtl.signal,
             });
 
-            if (!res.body) throw new Error("No body");
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(`HTTP error ${res.status}: ${errorText || res.statusText}`);
+            }
+
+            if (!res.body) throw new Error("Response has no body");
 
             const reader = res.body.getReader();
             const decoder = new TextDecoder();
-            let buffer = "";
 
             while (true) {
                 const { value, done } = await reader.read();
                 if (done) break;
 
-                buffer += decoder.decode(value, { stream: true });
+                const decodedChunk = decoder.decode(value, { stream: true });
+                if (!decodedChunk) continue;
 
-                const linesArr = buffer.split('\n');
-                buffer = linesArr.pop()!;
+                setLines(prev => {
+                    const updated = [...prev];
+                    const crPos = decodedChunk.lastIndexOf('\r');
+                    const chunkHasCR = crPos !== -1;
+                    const textToAdd = chunkHasCR ? decodedChunk.substring(crPos + 1) : decodedChunk;
 
-                linesArr.forEach(chunk => handleChunk(chunk));
-            }
+                    const isCurrentOutputValid = currentOutputIndex !== -1 &&
+                                                  currentOutputIndex < updated.length &&
+                                                  updated[currentOutputIndex]?.type === 'output';
 
-            if (buffer) handleChunk(buffer);
-
-            function handleChunk(chunk: string) {
-                const crPos = chunk.lastIndexOf('\r');
-
-                if (crPos === -1) {
-                    setLines(prev => [...prev, { type: "output", text: chunk }]);
-                } else {
-                    const clean = chunk.slice(crPos + 1);
-
-                    setLines(prev => {
-                        const updated = [...prev];
-                        let i = updated.length - 1;
-                        while (i >= 0 && updated[i].type !== "output") i--;
-
-                        if (i >= 0) {
-                            updated[i] = { ...updated[i], text: clean };
+                    if (!isCurrentOutputValid) {
+                        updated.push({ type: 'output', text: textToAdd });
+                        currentOutputIndex = updated.length - 1;
+                    } else {
+                        if (chunkHasCR) {
+                            updated[currentOutputIndex] = {
+                                ...updated[currentOutputIndex],
+                                text: textToAdd
+                            };
                         } else {
-                            updated.push({ type: "output", text: clean });
+                            updated[currentOutputIndex] = {
+                                ...updated[currentOutputIndex],
+                                text: updated[currentOutputIndex].text + textToAdd
+                            };
                         }
-                        return updated;
-                    });
-                }
+                    }
+                    return updated;
+                });
             }
+
+            const finalChunk = decoder.decode();
+            if (finalChunk) {
+                setLines(prev => {
+                    const updated = [...prev];
+                    const crPos = finalChunk.lastIndexOf('\r');
+                    const chunkHasCR = crPos !== -1;
+                    const textToAdd = chunkHasCR ? finalChunk.substring(crPos + 1) : finalChunk;
+
+                    const isCurrentOutputValid = currentOutputIndex !== -1 &&
+                                                  currentOutputIndex < updated.length &&
+                                                  updated[currentOutputIndex]?.type === 'output';
+
+                    if (!isCurrentOutputValid) {
+                        updated.push({ type: 'output', text: textToAdd });
+                    } else {
+                        if (chunkHasCR) {
+                            updated[currentOutputIndex] = { ...updated[currentOutputIndex], text: textToAdd };
+                        } else {
+                            updated[currentOutputIndex] = { ...updated[currentOutputIndex], text: updated[currentOutputIndex].text + textToAdd };
+                        }
+                    }
+                    return updated;
+                 });
+            }
+
 
         } catch (err: any) {
             if (err.name === "AbortError") {
-                setLines(prev => [...prev, { type: "output", text: "^C" }]);
+                setLines(prev => [...prev, { type: "output", text: "(cancelled)" }]);
             } else {
                 setLines(prev => [...prev,
                 { type: "output", text: "Error: Could not reach backend." }
