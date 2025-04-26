@@ -17,7 +17,7 @@ const apiBase = "http://localhost:8000";
 
 const CRTTerminal: React.FC = () => {
     const [lines, setLines] = useState<TerminalLine[]>([
-        { type: "output", text: "welcome to student.tty" },
+        { type: "output", text: "Welcome to student.tty" },
     ]);
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
@@ -39,12 +39,21 @@ const CRTTerminal: React.FC = () => {
         if (!input.trim()) return;
 
         const command = input;
+
+        if (command === "clear")
+        {
+            setLines([]);
+            setInput("");
+            return;
+        }
+
         setLines(prev => [...prev, { type: "input", text: command }]);
         setInput("");
         setLoading(true);
 
         const abortCtl = new AbortController();
         abortCtlRef.current = abortCtl;
+        let currentOutputIndex = -1;
 
         try {
             const res = await fetch(`${apiBase}/api/terminal`, {
@@ -54,27 +63,82 @@ const CRTTerminal: React.FC = () => {
                 signal: abortCtl.signal,
             });
 
-            if (!res.body) throw new Error("No body");
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(`HTTP error ${res.status}: ${errorText || res.statusText}`);
+            }
+
+            if (!res.body) throw new Error("Response has no body");
 
             const reader = res.body.getReader();
             const decoder = new TextDecoder();
-            let buffer = "";
 
             while (true) {
                 const { value, done } = await reader.read();
                 if (done) break;
 
-                buffer += decoder.decode(value, { stream: true });
-                const parts = buffer.split(/\r?\n/);
-                buffer = parts.pop()!;
-                parts.forEach(line =>
-                    setLines(prev => [...prev, { type: "output", text: line }])
-                );
+                const decodedChunk = decoder.decode(value, { stream: true });
+                if (!decodedChunk) continue;
+
+                setLines(prev => {
+                    const updated = [...prev];
+                    const crPos = decodedChunk.lastIndexOf('\r');
+                    const chunkHasCR = crPos !== -1;
+                    const textToAdd = chunkHasCR ? decodedChunk.substring(crPos + 1) : decodedChunk;
+
+                    const isCurrentOutputValid = currentOutputIndex !== -1 &&
+                                                  currentOutputIndex < updated.length &&
+                                                  updated[currentOutputIndex]?.type === 'output';
+
+                    if (!isCurrentOutputValid) {
+                        updated.push({ type: 'output', text: textToAdd });
+                        currentOutputIndex = updated.length - 1;
+                    } else {
+                        if (chunkHasCR) {
+                            updated[currentOutputIndex] = {
+                                ...updated[currentOutputIndex],
+                                text: textToAdd
+                            };
+                        } else {
+                            updated[currentOutputIndex] = {
+                                ...updated[currentOutputIndex],
+                                text: updated[currentOutputIndex].text + textToAdd
+                            };
+                        }
+                    }
+                    return updated;
+                });
             }
-            if (buffer) setLines(prev => [...prev, { type: "output", text: buffer }]);
+
+            const finalChunk = decoder.decode();
+            if (finalChunk) {
+                setLines(prev => {
+                    const updated = [...prev];
+                    const crPos = finalChunk.lastIndexOf('\r');
+                    const chunkHasCR = crPos !== -1;
+                    const textToAdd = chunkHasCR ? finalChunk.substring(crPos + 1) : finalChunk;
+
+                    const isCurrentOutputValid = currentOutputIndex !== -1 &&
+                                                  currentOutputIndex < updated.length &&
+                                                  updated[currentOutputIndex]?.type === 'output';
+
+                    if (!isCurrentOutputValid) {
+                        updated.push({ type: 'output', text: textToAdd });
+                    } else {
+                        if (chunkHasCR) {
+                            updated[currentOutputIndex] = { ...updated[currentOutputIndex], text: textToAdd };
+                        } else {
+                            updated[currentOutputIndex] = { ...updated[currentOutputIndex], text: updated[currentOutputIndex].text + textToAdd };
+                        }
+                    }
+                    return updated;
+                 });
+            }
+
+
         } catch (err: any) {
             if (err.name === "AbortError") {
-                setLines(prev => [...prev, { type: "output", text: "^C" }]);
+                setLines(prev => [...prev, { type: "output", text: "(cancelled)" }]);
             } else {
                 setLines(prev => [...prev,
                 { type: "output", text: "Error: Could not reach backend." }
@@ -113,67 +177,60 @@ const CRTTerminal: React.FC = () => {
 
     return (
         <div className="min-h-screen min-w-screen flex items-center justify-center relative" style={crtBg}>
-        {/* Scanner Overlay */}
-        <div
-            className="absolute inset-0 z-50 pointer-events-none"
-            style={{
-                opacity: 0.75,
-                background:
-                "repeating-linear-gradient(180deg, rgba(14, 32, 12, 0.79) 1px, transparent 4px)",
-            }}
-        />
-    
-        {/* Terminal Content */}
-        <div
-            ref={containerRef}
-            className="overflow-y-auto font-mono text-lg px-4 py-2 text-left relative z-0"
-            style={{
-                fontSize: "20px",
-                transition: "width 0.9s ease-in-out",
-                minWidth: "300px", // Keeps the minimum width intact
-                maxWidth: "100%", // Allow it to grow to the full width of its parent, but never exceed the container
-                overflowX: "hidden", // Prevent horizontal overflow (no scrolling needed)
-                whiteSpace: "pre-wrap", // Ensure long words wrap
-                wordWrap: "break-word", // Break long words properly
-                ...textGlow,
-            }}
-        >
-            {lines.map((line, idx) => (
-                <div key={idx} className="whitespace-pre-wrap">
-                    {line.type === "input" ? (
-                        <span className="text-green-300">$ {line.text}</span>
-                    ) : (
-                        <span className="text-green-400">{line.text}</span>
-                    )}
-                </div>
-            ))}
-            <form onSubmit={handleSubmit} className="flex items-center mt-2">
-                <span className="text-green-300">$</span>
-                <input
-                    ref={inputRef}
-                    type="text"
-                    className="bg-transparent border-none outline-none ml-2 flex-1 placeholder-green-400 text-green-200"
-                    style={{
-                        ...textGlow,
-                        caretColor: "#00FF00",
-                    }}
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    readOnly={loading}
-                    autoComplete="off"
-                    spellCheck={false}
-                    onKeyDown={handleKeyDown}
-                    placeholder={loading ? "Waiting for response..." : "Type a command"}
-                />
-                {loading && (
-                    <span className="ml-2 animate-pulse text-green-500">▌</span>
-                )}
-            </form>
-        </div>
-    </div>
+            {/* Scanner Overlay */}
+            <div
+                className="absolute inset-0 z-50 pointer-events-none"
+                style={{
+                    opacity: 0.75,
+                    background:
+                        "repeating-linear-gradient(180deg, rgba(14, 32, 12, 0.79) 1px, transparent 4px)",
+                }}
+            />
 
+            {/* Terminal Content */}
+            <div
+                ref={containerRef}
+                className="overflow-y-auto font-mono text-lg px-2 py-2 text-left relative z-0"
+                style={{
+                    fontSize: "20px", // 👈 Add this
+                    ...textGlow
+                }}
+            >
+                {lines.map((line, idx) => (
+                    <div key={idx} className="whitespace-pre-wrap">
+                        {line.type === "input" ? (
+                            <span className="text-green-300">$ {line.text}</span>
+                        ) : (
+                            <span className="text-green-400">{line.text}</span>
+                        )}
+                    </div>
+                ))}
+                <form onSubmit={handleSubmit} className="flex items-center mt-2">
+                    <span className="text-green-300">$</span>
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        className="bg-transparent border-none outline-none ml-2 flex-1 placeholder-green-400 text-green-200"
+                        style={{
+                            ...textGlow,
+                            caretColor: "#00FF00",
+                        }}
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        readOnly={loading}
+                        autoComplete="off"
+                        spellCheck={false}
+                        onKeyDown={handleKeyDown}
+                        placeholder={loading ? "Waiting for response..." : "Type a command"}
+                    />
+                    {loading && (
+                        <span className="ml-2 animate-pulse text-green-500">▌</span>
+                    )}
+                </form>
+            </div>
+        </div>
     );
-    
+
 };
 
 export default CRTTerminal;
