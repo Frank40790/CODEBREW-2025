@@ -5,7 +5,7 @@ interface AsciiDisplayProps {
 const AsciiDisplay: React.FC<AsciiDisplayProps> = ({ frameBuffer }) => {
   return (
     <>
-      <div className="text-center overflow-clip whitespace-nowrap select-none">
+      <div className="text-center overflow-clip whitespace-nowrap pointer-none">
         {/* render characters */}
         {frameBuffer.map((row: string[], i: number) => {
           return <div key={i}>

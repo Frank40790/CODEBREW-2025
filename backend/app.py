@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import asyncio
 import sys
+import docker
 
 COMMAND_TRANSLATION = {
     "ping": "ping -c 5 8.8.8.8",
@@ -30,6 +31,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# connect to docker
+client = docker.from_env()
+container = client.containers.get("tty-user-container")
+
 class CommandRequest(BaseModel):
     command: str
 
@@ -50,29 +55,25 @@ def is_blacklisted_shlex(cmd: str, blacklist) -> bool:
     return any(tok in blacklist for tok in tokens)
 
 async def stream_command_output(command_to_run: str, request: Request):
-    process = await asyncio.create_subprocess_shell(
-        command_to_run,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-
-    try:
-        while True:
-            if process.stdout is None:
+    result = container.exec_run(cmd=command_to_run, stdout=True, stderr=False, stream=True, demux=False)
+    for output in result.output:
+            if isinstance(output, tuple):
+                # If output is demuxed
+                stdout, _ = output
+                chunk = (stdout or b'').decode('utf-8', errors='replace')
+            else:
+                # If output is not demuxed
+                chunk = output.decode('utf-8', errors='replace')
+                
+            if chunk:
+                yield chunk
+                
+            # Allow other tasks to run
+            await asyncio.sleep(0)
+            
+            # Check if request is disconnected
+            if await request.is_disconnected():
                 break
-
-            line = await process.stdout.readline()
-            if not line:
-                break
-
-            yield line.decode(errors="replace")
-    except asyncio.CancelledError:
-        process.terminate()
-    finally:
-        try:
-            await asyncio.wait_for(process.wait(), timeout=2)
-        except asyncio.TimeoutError:
-            process.kill()
 
 async def empty_stream():
     pass
@@ -84,11 +85,13 @@ async def terminal(cmd: CommandRequest, request: Request):
     if not text:
         return StreamingResponse(empty_stream(), media_type="text/plain")
 
-    if (text in COMMAND_TRANSLATION) and not is_blacklisted(text):
-        actual_command = COMMAND_TRANSLATION[text]
-        return StreamingResponse(
-            stream_command_output(actual_command, request),
-            media_type="text/plain",
-        )
-    else:
-        return StreamingResponse("Method not allowed")
+    return StreamingResponse(stream_command_output(text, request));
+
+    # if (text in COMMAND_TRANSLATION) and not is_blacklisted(text):
+    #     actual_command = COMMAND_TRANSLATION[text]
+    #     return StreamingResponse(
+    #         stream_command_output(actual_command, request),
+    #         media_type="text/plain",
+    #     )
+    # else:
+    #     return StreamingResponse("Method not allowed")

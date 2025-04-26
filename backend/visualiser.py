@@ -1,6 +1,5 @@
 import time
 import random
-import os
 import sys
 
 WIDTH = 70
@@ -12,28 +11,15 @@ def main():
         return
     
     sorting_funcs = {1: bubble_sort, 2: quick_sort, 3: counting_sort, 4: radix_sort}
-    test_sorting_algorithm("", sorting_funcs[int(sys.argv[1])])
-    # test_sorting_algorithm("Quick Sort", quick_sort)
-    # time.sleep(1)
-    # test_sorting_algorithm("Counting Sort", counting_sort)
-    # time.sleep(1)
-    # test_sorting_algorithm("Radix Sort", radix_sort)
+    test_sorting_algorithm(sorting_funcs[int(sys.argv[1])])
 
 def terminal_print(str):
     print(str, flush=True)
 
-def test_sorting_algorithm(name, sort_function):
-    # Clear the screen
-    # lear_screen()
-    # sys.stdout.write('\r')
+def test_sorting_algorithm(sort_function):
     
     # Create random array
     bar_heights = [random.randint(1, 20) for _ in range(10)]
-    
-    # Display initial state
-    # print(f"\n{name} - Initial State:")
-    
-    # Run the sorting algorithm with visualization
     sort_function(bar_heights)
 
 def create_grid():

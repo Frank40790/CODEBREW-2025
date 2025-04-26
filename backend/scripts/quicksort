@@ -1,0 +1,32 @@
+#!/usr/bin/python
+
+def quick_sort(arr):
+    def partition(arr, low, high):
+        pivot = arr[high]
+        i = low - 1
+        
+        for j in range(low, high):
+            # Visualize comparison with pivot
+            visualize_state(arr, [j, high])
+            
+            if arr[j] <= pivot:
+                i += 1
+                arr[i], arr[j] = arr[j], arr[i]
+                
+                # Visualize after swap
+                visualize_state(arr, [i, j, high])
+        
+        arr[i + 1], arr[high] = arr[high], arr[i + 1]
+        
+        # Visualize after placing pivot
+        visualize_state(arr, [i + 1])
+        
+        return i + 1
+    
+    def quick_sort_recursive(arr, low, high):
+        if low < high:
+            pi = partition(arr, low, high)
+            quick_sort_recursive(arr, low, pi - 1)
+            quick_sort_recursive(arr, pi + 1, high)
+    
+    quick_sort_recursive(arr, 0, len(arr) - 1)

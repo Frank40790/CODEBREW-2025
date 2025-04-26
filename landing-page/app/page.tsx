@@ -1,7 +1,8 @@
 "use client";
 
-import AsciiDisplay from "@/components/ascii_display";
 import { useState, useEffect, useRef } from "react";
+import AsciiDisplay from "@/components/ascii_display";
+import Link from "next/link";
 
 const crtBg = {
   background: "repeating-linear-gradient(180deg, #222 0px, #222 2px, #232323 4px, #222 6px)",
@@ -14,57 +15,8 @@ const textGlow = {
 const HEIGHT = 40;
 const WIDTH = 100;
 
-const sine_wave = (framebuffer: string[][], phase: number) => {
-  const rows = HEIGHT;
-  const cols = WIDTH;
 
-  const amplitude = 5;
-  const frequency = 0.1;
-  const offset = 30;
-
-  for (let i = 0; i < rows; i++) {
-    for (let j = 0; j < cols; j++) {
-      framebuffer[i][j] = ' ';
-    }
-  }
-
-  for (let i = 0; i < rows; i++) {
-    // Calculate x position for this row
-    const y = i;
-
-    // plot on either side
-    // translate x left and right
-
-    const x1 = Math.floor(
-      cols / 2 + 
-      amplitude * 
-      Math.sin(frequency * y + phase)
-    ) - offset;
-
-    const x2 = Math.floor(
-      cols / 2 -
-      amplitude * 
-      Math.sin(frequency * y + phase)
-    ) + offset;
-    
-    // Make sure x is within grid bounds
-    if (x1 >= 0 && x1 < cols && x2 >= 0 && x2 < cols) {
-      framebuffer[i][x1] = '*';
-      framebuffer[i][x2] = '*';
-    }
-
-    // fill gap between 
-
-    for (let j = x1; j < x2; j++) {
-      framebuffer[i][j] = '*';
-    }
-  }
-
-  return framebuffer;
-}
-
-
-let streams: MatrixStream[] = [];
+const streams: MatrixStream[] = [];
 
 interface MatrixStream {
     position: number; // position of front (bottom character) on screen
@@ -136,9 +88,7 @@ export default function Home() {
 
   useEffect(() => {
     let current: string[][] = matrix_init(WIDTH, HEIGHT);
-    let animationSpeed: number = 15;
-    let phase = 0;
-    const speed = 0.08;
+    const animationSpeed: number = 15;
 
     const fpsInterval: number = 1000 / animationSpeed;
     let next: string[][];
@@ -159,7 +109,6 @@ export default function Home() {
         setFrameBuffer(next);
         current = [...next];
       }
-      phase += speed
       animationRequestID.current = requestAnimationFrame(animate);
     }
 
@@ -186,8 +135,8 @@ export default function Home() {
       </div>
       <div className="z-10">
         <h1 style={textGlow} className="text-6xl font-bold">Student.TTY</h1>
-        <p className="text-lg">Web-based terminal to teach students their CS Fundamentals.</p>
-        <button onClick={() => alert("Clicked")} className="text-2xl hover:underline hover:cursor-pointer">Try Out</button>
+        <p className="text-lg">Web-based terminal environment to teach students CS Fundamentals.</p>
+        <Link href="" className="text-2xl hover:underline hover:cursor-pointer">Try Out</Link>
       </div>
     </main>
   )
