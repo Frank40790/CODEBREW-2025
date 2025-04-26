@@ -4,40 +4,26 @@ import time
 
 HEIGHT = 20
 WIDTH = 70
-
-def quick_sort(arr):
-    def partition(arr, low, high):
-        pivot = arr[high]
-        i = low - 1
-        
-        for j in range(low, high):
-            # Visualize comparison with pivot
-            visualize_state(arr, [j, high])
-            
-            if arr[j] <= pivot:
-                i += 1
-                arr[i], arr[j] = arr[j], arr[i]
-                
-                # Visualize after swap
-                visualize_state(arr, [i, j, high])
-        
-        arr[i + 1], arr[high] = arr[high], arr[i + 1]
-        
-        # Visualize after placing pivot
-        visualize_state(arr, [i + 1])
-        
-        return i + 1
+def counting_sort(arr):
+    # Find the maximum value
+    max_val = max(arr)
     
-    def quick_sort_recursive(arr, low, high):
-        if low < high:
-            pi = partition(arr, low, high)
-            quick_sort_recursive(arr, low, pi - 1)
-            quick_sort_recursive(arr, pi + 1, high)
+    # Initialize count array
+    count = [0] * (max_val + 1)
     
-    quick_sort_recursive(arr, 0, len(arr) - 1)
-
-
-
+    # Count occurrences
+    for num in arr:
+        count[num] += 1
+        visualize_state(arr, [arr.index(num)])
+    
+    # Reconstruct the sorted array
+    i = 0
+    for num in range(max_val + 1):
+        while count[num] > 0:
+            arr[i] = num
+            i += 1
+            count[num] -= 1
+            visualize_state(arr, [i-1])
 def terminal_print(str):
     print(str, flush=True)
 
@@ -89,4 +75,4 @@ def print_grid(grid):
         terminal_print("".join(grid[i]))
 
 bar_heights = [random.randint(1, 20) for _ in range(10)]
-quick_sort(bar_heights)
+counting_sort(bar_heights)

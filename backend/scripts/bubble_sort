@@ -5,38 +5,23 @@ import time
 HEIGHT = 20
 WIDTH = 70
 
-def quick_sort(arr):
-    def partition(arr, low, high):
-        pivot = arr[high]
-        i = low - 1
-        
-        for j in range(low, high):
-            # Visualize comparison with pivot
-            visualize_state(arr, [j, high])
+def bubble_sort(arr):
+    n = len(arr)
+    for i in range(n):
+        swapped = False
+        for j in range(0, n - i - 1):
+            # Visualize comparison
+            visualize_state(arr, [j, j+1])
             
-            if arr[j] <= pivot:
-                i += 1
-                arr[i], arr[j] = arr[j], arr[i]
+            if arr[j] > arr[j + 1]:
+                arr[j], arr[j + 1] = arr[j + 1], arr[j]
+                swapped = True
                 
                 # Visualize after swap
-                visualize_state(arr, [i, j, high])
+                visualize_state(arr, [j, j+1])
         
-        arr[i + 1], arr[high] = arr[high], arr[i + 1]
-        
-        # Visualize after placing pivot
-        visualize_state(arr, [i + 1])
-        
-        return i + 1
-    
-    def quick_sort_recursive(arr, low, high):
-        if low < high:
-            pi = partition(arr, low, high)
-            quick_sort_recursive(arr, low, pi - 1)
-            quick_sort_recursive(arr, pi + 1, high)
-    
-    quick_sort_recursive(arr, 0, len(arr) - 1)
-
-
+        if not swapped:
+            break
 
 def terminal_print(str):
     print(str, flush=True)
@@ -89,4 +74,4 @@ def print_grid(grid):
         terminal_print("".join(grid[i]))
 
 bar_heights = [random.randint(1, 20) for _ in range(10)]
-quick_sort(bar_heights)
+bubble_sort(bar_heights)

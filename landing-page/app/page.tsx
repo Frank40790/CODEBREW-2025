@@ -135,8 +135,8 @@ export default function Home() {
       </div>
       <div className="z-10">
         <h1 style={textGlow} className="text-6xl font-bold">Student.TTY</h1>
-        <p className="text-lg">Web-based terminal environment to teach students CS Fundamentals.</p>
-        <Link href="" className="text-2xl hover:underline hover:cursor-pointer">Try Out</Link>
+        <p className="text-lg">Web-based terminal environment to teach students CS fundamentals.</p>
+        <Link href="http://localhost:3006" className="text-2xl hover:underline hover:cursor-pointer">Try Out</Link>
       </div>
     </main>
   )

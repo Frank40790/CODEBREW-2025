@@ -26,7 +26,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -37,8 +37,6 @@ container = client.containers.get("tty-user-container")
 
 class CommandRequest(BaseModel):
     command: str
-
-
 
 def is_blacklisted(cmd: str) -> bool:
     blacklist_regex = re.compile(r"\b(?:%s)\b" % "|".join(map(re.escape, BLACKLIST_COMMANDS)))
@@ -77,6 +75,11 @@ async def stream_command_output(command_to_run: str, request: Request):
 
 async def empty_stream():
     pass
+
+
+@app.post("/api/ping")
+async def ping(request: Request):
+    return b"Pong"
 
 @app.post("/api/terminal")
 async def terminal(cmd: CommandRequest, request: Request):

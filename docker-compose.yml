@@ -1,0 +1,18 @@
+services:
+    backend:
+        build: ./backend
+        ports:
+            - "8000:8000"
+    frontend:
+        build: ./frontend
+        ports:
+            - "3006:3006"
+        depends_on:
+            - backend
+    user-container:
+        build: ./user-container
+    landing-page:
+        build: ./landing-page
+        ports: 
+            - "3000:3000"
+            

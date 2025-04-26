@@ -5,38 +5,42 @@ import time
 HEIGHT = 20
 WIDTH = 70
 
-def quick_sort(arr):
-    def partition(arr, low, high):
-        pivot = arr[high]
-        i = low - 1
-        
-        for j in range(low, high):
-            # Visualize comparison with pivot
-            visualize_state(arr, [j, high])
-            
-            if arr[j] <= pivot:
-                i += 1
-                arr[i], arr[j] = arr[j], arr[i]
-                
-                # Visualize after swap
-                visualize_state(arr, [i, j, high])
-        
-        arr[i + 1], arr[high] = arr[high], arr[i + 1]
-        
-        # Visualize after placing pivot
-        visualize_state(arr, [i + 1])
-        
-        return i + 1
+def radix_sort(arr):
+    # Find the maximum number to know number of digits
+    max_val = max(arr)
+    exp = 1
     
-    def quick_sort_recursive(arr, low, high):
-        if low < high:
-            pi = partition(arr, low, high)
-            quick_sort_recursive(arr, low, pi - 1)
-            quick_sort_recursive(arr, pi + 1, high)
+    while max_val // exp > 0:
+        counting_sort_for_radix(arr, exp)
+        exp *= 10
+
+def counting_sort_for_radix(arr, exp):
+    n = len(arr)
+    output = [0] * n
+    count = [0] * 10
     
-    quick_sort_recursive(arr, 0, len(arr) - 1)
-
-
+    # Count occurrences of each digit
+    for i in range(n):
+        index = arr[i] // exp % 10
+        count[index] += 1
+        visualize_state(arr, [i])
+    
+    # Change count[i] so that count[i] contains actual position of this digit in output[]
+    for i in range(1, 10):
+        count[i] += count[i - 1]
+    
+    # Build the output array
+    i = n - 1
+    while i >= 0:
+        index = arr[i] // exp % 10
+        output[count[index] - 1] = arr[i]
+        count[index] -= 1
+        i -= 1
+    
+    # Copy the output array to arr
+    for i in range(n):
+        arr[i] = output[i]
+        visualize_state(arr, [i])
 
 def terminal_print(str):
     print(str, flush=True)
@@ -89,4 +93,4 @@ def print_grid(grid):
         terminal_print("".join(grid[i]))
 
 bar_heights = [random.randint(1, 20) for _ in range(10)]
-quick_sort(bar_heights)
+radix_sort(bar_heights)
