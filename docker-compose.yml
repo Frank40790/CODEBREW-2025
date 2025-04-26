@@ -15,11 +15,11 @@ services:
             - backend
         networks:
           - tty-network
-    user-container:
-        build: ./user-container
-        container_name: tty-user-container  # Set the container name here
-        networks:
-          - tty-network
+    # user-container:
+    #     build: ./user-container
+    #     container_name: tty-user-container  # Set the container name here
+    #     networks:
+    #       - tty-network
     landing-page:
         build: ./landing-page
         ports: 
