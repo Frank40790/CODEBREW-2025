@@ -2,17 +2,31 @@ services:
     backend:
         build: ./backend
         ports:
-            - "8000:8000"
+          - "8000:8000"
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock
+        networks:
+          - tty-network
     frontend:
         build: ./frontend
         ports:
             - "3006:3006"
         depends_on:
             - backend
+        networks:
+          - tty-network
     user-container:
         build: ./user-container
+        container_name: tty-user-container  # Set the container name here
+        networks:
+          - tty-network
     landing-page:
         build: ./landing-page
         ports: 
             - "3000:3000"
-            
+        networks:
+          - tty-network
+
+networks:
+  tty-network:
+    driver: bridge
