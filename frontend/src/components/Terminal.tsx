@@ -192,7 +192,7 @@ const CRTTerminal: React.FC = () => {
                 ref={containerRef}
                 className="overflow-y-auto font-mono text-lg px-2 py-2 text-left relative z-0"
                 style={{
-                    fontSize: "20px", // 👈 Add this
+                    fontSize: "20px",
                     ...textGlow
                 }}
             >

@@ -7,7 +7,6 @@ WIDTH = 70
 HEIGHT = 20
 
 def main():
-    # Test each sorting algorithm
 
     if len(sys.argv) < 2:
         return
@@ -36,13 +35,6 @@ def test_sorting_algorithm(name, sort_function):
     
     # Run the sorting algorithm with visualization
     sort_function(bar_heights)
-    
-    # Display final state
-    # print(f"\n{name} - Sorted:")
-    # grid = create_grid()
-    # draw_bars(grid, bar_heights)
-    # print_grid(grid)
-    # print(f"\nFinal array: {bar_heights}")
 
 def create_grid():
     return [[' ' for _ in range(WIDTH)] for _ in range(HEIGHT)]
